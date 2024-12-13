@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glowing Message with Video and Soundtrack</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        /* Glowing Text Styles */
+        .glow-text {
+            font-family: 'Pacifico', cursive;
+            color: #ffffff;
+            text-shadow:
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.6);
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+        }
+        .visible {
+            opacity: 1;
+        }
+
+        /* Fade Button Styles */
+        .fade-button {
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            pointer-events: none; /* Prevents interaction when hidden */
+        }
+        .button-visible {
+            opacity: 1;
+            pointer-events: auto; /* Enables interaction when visible */
+        }
+
+        /* Ensure the body takes full height */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        /* Overlay for Initial Start Button */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 1s ease-in-out;
+            opacity: 1;
+        }
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Video Container Styles */
+        .video-container {
+            display: none; /* Hidden initially */
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 5;
+            transition: opacity 1s ease-in-out;
+            opacity: 0;
+        }
+        .video-container.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* Responsive Video Styles */
+        .responsive-video {
+            width: 90%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-gray-800 to-black flex items-center justify-center min-h-screen relative">
+    <!-- Initial Overlay with Start Button -->
+    <div id="start-overlay" class="overlay">
+        <button id="start-button" class="px-6 py-3 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 focus:outline-none transition">
+            Start Experience
+        </button>
+    </div>
+
+    <!-- Video Container -->
+    <div id="video-container" class="video-container">
+        <video id="intro-video" class="responsive-video" src="Gen-3 Alpha Turbo.mp4" preload="auto"></video>
+    </div>
+
+    <!-- Glowing Message -->
+    <div id="message" class="glow-text text-3xl sm:text-5xl md:text-6xl">
+        Welcome to the Glowing Page!
+    </div>
+
+    <!-- Replay Button -->
+    <button id="replay-button" class="fade-button mt-8 px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 focus:outline-none transition">
+        Replay Message
+    </button>
+
+    <!-- Audio Element -->
+    <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto"></audio>
+
+    <script>
+        // Get DOM Elements
+        const message = document.getElementById('message');
+        const replayButton = document.getElementById('replay-button');
+        const introVideo = document.getElementById('intro-video');
+        const videoContainer = document.getElementById('video-container');
+        const startButton = document.getElementById('start-button');
+        const startOverlay = document.getElementById('start-overlay');
+        const backgroundAudio = document.getElementById('background-audio');
+
+        // Durations in milliseconds
+        const FADE_IN_DURATION = 2000;    // 2 seconds
+        const DISPLAY_DURATION = 10000;    // 10 seconds
+        const FADE_OUT_DURATION = 2000;    // 2 seconds
+        const FADE_INTERVAL_STEPS = 20;    // Number of steps for fade in/out
+
+        // Timers
+        let fadeOutTimer;
+        let showButtonTimer;
+        let fadeOutInterval;
+        let fadeInInterval;
+
+        // Function to Fade In the Glowing Message
+        function fadeInMessage() {
+            message.classList.add('visible');
+        }
+
+        // Function to Fade Out the Glowing Message
+        function fadeOutMessage() {
+            message.classList.remove('visible');
+        }
+
+        // Function to Show the Glowing Message with Timers
+        function showMessage() {
+            // Show message
+            fadeInMessage();
+
+            // Hide replay button if visible
+            replayButton.classList.remove('button-visible');
+
+            // Clear any existing timers to prevent multiple triggers
+            clearTimeout(fadeOutTimer);
+            clearTimeout(showButtonTimer);
+            clearInterval(fadeOutInterval);
+            clearInterval(fadeInInterval);
+
+            // Start timer to fade out the message after display duration
+            fadeOutTimer = setTimeout(() => {
+                fadeOutMessage();
+            }, DISPLAY_DURATION); // 10 seconds
+
+            // Start timer to show the replay button after display + fade out durations
+            showButtonTimer = setTimeout(() => {
+                replayButton.classList.add('button-visible');
+            }, DISPLAY_DURATION + FADE_OUT_DURATION); // 10s + 2s = 12s
+        }
+
+        // Function to Play Video and Audio Simultaneously
+        function playVideoAndAudio() {
+            // Show video container
+            videoContainer.classList.add('active');
+
+            // Reset and play video
+            introVideo.currentTime = 0;
+            introVideo.play().catch(error => {
+                console.error('Video playback failed:', error);
+                // If video playback fails, proceed to show the message
+                videoContainer.classList.remove('active');
+                showMessage();
+            });
+
+            // Reset and play audio
+            backgroundAudio.currentTime = 0;
+            backgroundAudio.volume = 1.0; // Ensure volume is at max
+            backgroundAudio.play().catch(error => {
+                console.error('Audio playback failed:', error);
+            });
+        }
+
+        // Event Listener for When the Video Ends
+        introVideo.addEventListener('ended', () => {
+            // Hide video container
+            videoContainer.classList.remove('active');
+
+            // Pause and reset audio if it's still playing
+            if (!backgroundAudio.paused) {
+                backgroundAudio.pause();
+                backgroundAudio.currentTime = 0;
+            }
+
+            // Show the message
+            showMessage();
+        });
+
+        // Event Listener for the Start Button
+        startButton.addEventListener('click', () => {
+            // Hide the start overlay
+            startOverlay.classList.add('hidden');
+
+            // Remove the overlay from the DOM after transition
+            startOverlay.addEventListener('transitionend', () => {
+                if (startOverlay.classList.contains('hidden')) {
+                    startOverlay.style.display = 'none';
+                }
+            });
+
+            // Play video and audio
+            playVideoAndAudio();
+        });
+
+        // Event Listener for the Replay Button
+        replayButton.addEventListener('click', () => {
+            // Reset message visibility
+            fadeOutMessage();
+            replayButton.classList.remove('button-visible');
+
+            // Play video and audio again
+            playVideoAndAudio();
+        });
+
+        // Ensure the message and replay button are hidden initially
+        window.addEventListener('load', () => {
+            fadeOutMessage();
+            replayButton.classList.remove('button-visible');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glowing Message with Image</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        /* Glowing Text Styles */
+        .glow-text {
+            font-family: 'Pacifico', cursive;
+            color: #ffffff;
+            text-shadow:
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+        }
+        .visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Fade Button Styles */
+        .fade-button {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+            pointer-events: none; /* Prevents interaction when hidden */
+        }
+        .button-visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto; /* Enables interaction when visible */
+        }
+
+        /* Ensure the body takes full height */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        /* Overlay for Initial Start Button */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+            opacity: 1;
+            visibility: visible;
+        }
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Image Container Styles */
+        .image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+        }
+        .image-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive Image Styles */
+        .responsive-image {
+            width: 90%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-gray-800 to-black flex items-center justify-center min-h-screen relative">
+    <!-- Initial Overlay with Start Button -->
+    <div id="start-overlay" class="overlay">
+        <button id="start-button" class="px-6 py-3 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 focus:outline-none transition">
+            Start Experience
+        </button>
+    </div>
+
+    <!-- Image Container -->
+    <div id="image-container" class="image-container">
+        <img id="intro-image" class="responsive-image" src="download 04.png" alt="Intro Image">
+    </div>
+
+    <!-- Glowing Message -->
+    <div id="message" class="glow-text text-3xl sm:text-5xl md:text-6xl">
+        Welcome to the Glowing Page!
+    </div>
+
+    <!-- Replay Button -->
+    <button id="replay-button" class="fade-button mt-8 px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 focus:outline-none transition">
+        Replay Message
+    </button>
+
+    <script>
+        // Get DOM Elements
+        const message = document.getElementById('message');
+        const replayButton = document.getElementById('replay-button');
+        const introImage = document.getElementById('intro-image');
+        const imageContainer = document.getElementById('image-container');
+        const startButton = document.getElementById('start-button');
+        const startOverlay = document.getElementById('start-overlay');
+
+        // Durations in milliseconds
+        const FADE_IN_DURATION = 2000;    // 2 seconds
+        const DISPLAY_DURATION = 10000;    // 10 seconds
+        const FADE_OUT_DURATION = 2000;    // 2 seconds
+
+        // Timers
+        let fadeOutTimer;
+        let showButtonTimer;
+
+        // Function to Fade In the Image
+        function fadeInImage() {
+            imageContainer.classList.add('active');
+        }
+
+        // Function to Fade Out the Image
+        function fadeOutImage() {
+            imageContainer.classList.remove('active');
+        }
+
+        // Function to Fade In the Glowing Message
+        function fadeInMessage() {
+            message.classList.add('visible');
+        }
+
+        // Function to Fade Out the Glowing Message
+        function fadeOutMessage() {
+            message.classList.remove('visible');
+        }
+
+        // Function to Show the Glowing Message with Timers
+        function showMessage() {
+            // Show message
+            fadeInMessage();
+
+            // Hide replay button if visible
+            replayButton.classList.remove('button-visible');
+
+            // Clear any existing timers to prevent multiple triggers
+            clearTimeout(fadeOutTimer);
+            clearTimeout(showButtonTimer);
+
+            // Start timer to fade out the message after display duration
+            fadeOutTimer = setTimeout(() => {
+                fadeOutMessage();
+            }, DISPLAY_DURATION); // 10 seconds
+
+            // Start timer to show the replay button after display + fade out durations
+            showButtonTimer = setTimeout(() => {
+                replayButton.classList.add('button-visible');
+            }, DISPLAY_DURATION + FADE_OUT_DURATION); // 10s + 2s = 12s
+        }
+
+        // Function to Play the Image Sequence
+        function playImageSequence() {
+            // Show image
+            fadeInImage();
+
+            // Start timer to fade out the image after display duration
+            fadeOutTimer = setTimeout(() => {
+                fadeOutImage();
+                showMessage();
+            }, DISPLAY_DURATION); // 10 seconds
+        }
+
+        // Event Listener for the Start Button
+        startButton.addEventListener('click', () => {
+            // Hide the start overlay
+            startOverlay.classList.add('hidden');
+
+            // Remove the overlay from the DOM after transition
+            startOverlay.addEventListener('transitionend', () => {
+                if (startOverlay.classList.contains('hidden')) {
+                    startOverlay.style.display = 'none';
+                }
+            });
+
+            // Play the image sequence
+            playImageSequence();
+        });
+
+        // Event Listener for the Replay Button
+        replayButton.addEventListener('click', () => {
+            // Reset message visibility
+            fadeOutMessage();
+            replayButton.classList.remove('button-visible');
+
+            // Play the image sequence again
+            playImageSequence();
+        });
+
+        // Ensure the message and replay button are hidden initially
+        window.addEventListener('load', () => {
+            fadeOutMessage();
+            replayButton.classList.remove('button-visible');
+            fadeOutImage();
+        });
+    </script>
+</body>
+</html>
