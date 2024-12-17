@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sequential Images and Message with Replay</title>
+    <title>Sequential Images and Message with Soundtrack</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -19,6 +19,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+            cursor: pointer;
         }
         .visible {
             opacity: 1;
@@ -30,12 +31,12 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
-            pointer-events: none; /* Prevents interaction when hidden */
+            pointer-events: none;
         }
         .button-visible {
             opacity: 1;
             visibility: visible;
-            pointer-events: auto; /* Enables interaction when visible */
+            pointer-events: auto;
         }
 
         /* Ensure the body takes full height */
@@ -81,6 +82,7 @@
             opacity: 0;
             visibility: hidden;
             transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+            cursor: pointer;
         }
         .image-container.active {
             opacity: 1;
@@ -107,23 +109,29 @@
 
     <!-- First Image Container -->
     <div id="first-image-container" class="image-container">
-        <img id="first-image" class="responsive-image" src="download 04.png" alt="First Intro Image">
+        <img id="first-image" class="responsive-image" src="download 04.png.jpg" alt="First Intro Image">
     </div>
 
     <!-- Glowing Message -->
     <div id="message" class="glow-text text-3xl sm:text-5xl md:text-6xl text-center px-4">
-        Welcome to the Glowing Page!
+        Launched from Earth,
+        now out of sight,
+        what’s built to explore
+        and bring delight?
     </div>
 
     <!-- Second Image Container -->
     <div id="second-image-container" class="image-container">
-        <img id="second-image" class="responsive-image" src="download 04.png" alt="Second Intro Image">
+        <img id="second-image" class="responsive-image" src="download 04.png.jpg" alt="Second Intro Image">
     </div>
 
     <!-- Replay Button -->
     <button id="replay-button" class="fade-button mt-8 px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 focus:outline-none transition">
         Replay Message
     </button>
+
+    <!-- Audio Element -->
+    <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto"></audio>
 
     <script>
         // Get DOM Elements
@@ -133,130 +141,112 @@
         const secondImageContainer = document.getElementById('second-image-container');
         const startButton = document.getElementById('start-button');
         const startOverlay = document.getElementById('start-overlay');
+        const backgroundAudio = document.getElementById('background-audio');
 
         // Durations in milliseconds
-        const FADE_IN_DURATION = 2000;    // 2 seconds
         const DISPLAY_DURATION = 10000;    // 10 seconds
-        const FADE_OUT_DURATION = 2000;    // 2 seconds
 
         // Timers
-        let fadeOutTimer;
-        let showButtonTimer;
+        let currentTimer;
 
-        // Function to Fade In an Image
-        function fadeInImage(imageContainer) {
-            imageContainer.classList.add('active');
+        // Function to Clear Existing Timer
+        function clearCurrentTimer() {
+            if (currentTimer) {
+                clearTimeout(currentTimer);
+                currentTimer = null;
+            }
         }
 
-        // Function to Fade Out an Image
-        function fadeOutImage(imageContainer) {
-            imageContainer.classList.remove('active');
+        // Function to Fade In an Element
+        function fadeIn(element) {
+            element.classList.add('active') || element.classList.add('visible');
         }
 
-        // Function to Fade In the Glowing Message
-        function fadeInMessage() {
-            message.classList.add('visible');
+        // Function to Fade Out an Element
+        function fadeOut(element) {
+            element.classList.remove('active') || element.classList.remove('visible');
         }
 
-        // Function to Fade Out the Glowing Message
-        function fadeOutMessage() {
-            message.classList.remove('visible');
+        // Function to Start Audio
+        function startAudio() {
+            backgroundAudio.currentTime = 0;
+            backgroundAudio.volume = 0.5; // Adjust volume as needed
+            backgroundAudio.play().catch(error => console.error('Audio playback failed:', error));
         }
 
-        // Function to Show the Glowing Message with Timers
+        // Sequence Functions
+        function showFirstImage() {
+            fadeIn(firstImageContainer);
+            currentTimer = setTimeout(() => {
+                fadeOut(firstImageContainer);
+                showMessage();
+            }, DISPLAY_DURATION);
+        }
+
         function showMessage() {
-            // Show message
-            fadeInMessage();
+            fadeIn(message);
+            startAudio();
+            currentTimer = setTimeout(() => {
+                fadeOut(message);
+                showSecondImage();
+            }, DISPLAY_DURATION);
+        }
 
-            // Hide replay button if visible
-            replayButton.classList.remove('button-visible');
-
-            // Clear any existing timers to prevent multiple triggers
-            clearTimeout(fadeOutTimer);
-            clearTimeout(showButtonTimer);
-
-            // Start timer to fade out the message after display duration
-            fadeOutTimer = setTimeout(() => {
-                fadeOutMessage();
+        function showSecondImage() {
+            fadeIn(secondImageContainer);
+            currentTimer = setTimeout(() => {
+                fadeOut(secondImageContainer);
                 showReplayButton();
-            }, DISPLAY_DURATION); // 10 seconds
-
-            // Optional: Automatically hide the message after 10 seconds
+            }, DISPLAY_DURATION);
         }
 
-        // Function to Show the Replay Button
         function showReplayButton() {
-            replayButton.classList.add('button-visible');
+            fadeIn(replayButton);
         }
 
-        // Function to Play the Entire Sequence
+        // Start Sequence
         function playSequence() {
-            // Start with first image
-            fadeInImage(firstImageContainer);
-
-            // After DISPLAY_DURATION, fade out first image and show message
-            fadeOutTimer = setTimeout(() => {
-                fadeOutImage(firstImageContainer);
-                fadeInMessage();
-
-                // Start timer for message display
-                fadeOutTimer = setTimeout(() => {
-                    fadeOutMessage();
-                    // After message fades out, show second image
-                    fadeInImage(secondImageContainer);
-
-                    // After DISPLAY_DURATION, fade out second image and show replay button
-                    fadeOutTimer = setTimeout(() => {
-                        fadeOutImage(secondImageContainer);
-                        showReplayButton();
-                    }, DISPLAY_DURATION); // 10 seconds
-
-                }, DISPLAY_DURATION); // 10 seconds
-            }, DISPLAY_DURATION); // 10 seconds
+            showFirstImage();
         }
 
-        // Event Listener for Start Button
+        // Event Listeners
         startButton.addEventListener('click', () => {
-            // Hide the start overlay
-            startOverlay.classList.add('hidden');
-
-            // Remove the overlay from the DOM after transition
+            fadeOut(startOverlay);
             startOverlay.addEventListener('transitionend', () => {
-                if (startOverlay.classList.contains('hidden')) {
-                    startOverlay.style.display = 'none';
-                }
-            });
-
-            // Start the sequence
-            playSequence();
+                startOverlay.style.display = 'none';
+                playSequence();
+            }, { once: true });
         });
 
-        // Event Listener for Replay Button
         replayButton.addEventListener('click', () => {
-            // Reset message visibility
-            fadeOutMessage();
-            replayButton.classList.remove('button-visible');
-
-            // Reset image containers
-            fadeOutImage(firstImageContainer);
-            fadeOutImage(secondImageContainer);
-
-            // Start the sequence again
+            fadeOut(replayButton);
             playSequence();
         });
 
-        // Event Listener for Message Click to Fade Out Early
+        firstImageContainer.addEventListener('click', () => {
+            clearCurrentTimer();
+            fadeOut(firstImageContainer);
+            showMessage();
+        });
+
         message.addEventListener('click', () => {
-            fadeOutMessage();
+            clearCurrentTimer();
+            fadeOut(message);
+            showSecondImage();
+        });
+
+        secondImageContainer.addEventListener('click', () => {
+            clearCurrentTimer();
+            fadeOut(secondImageContainer);
             showReplayButton();
         });
 
-        // Ensure all elements are hidden initially
+        // Initial State
         window.addEventListener('load', () => {
-            fadeOutMessage();
-            replayButton.classList.remove('button-visible');
-            fadeOutImage(firstImageContainer);
-            fadeOutImage(secondImageContainer);
+            fadeOut(firstImageContainer);
+            fadeOut(message);
+            fadeOut(secondImageContainer);
+            fadeOut(replayButton);
         });
     </script>
 </body>
