@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sequential Images and Message with Soundtrack</title>
+    <title>Sequential Images and Message with Soundtracks</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -140,6 +140,7 @@
         <div>Where magic walks and dreams unclog,</div>
         <div>The stone holds secrets, the wand holds power,</div>
         <div>your memory in this golden hour.</div>
+        </div>
     </div>
 
     <!-- Second Image Container -->
@@ -157,8 +158,9 @@
         🔊
     </button>
 
-    <!-- Audio Element -->
+    <!-- Audio Elements -->
     <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto"></audio>
+    <audio id="voiceover-audio" src="Gift001-Riddle.mp3" preload="auto"></audio>
 
     <script>
         // Get DOM Elements
@@ -169,6 +171,7 @@
         const startButton = document.getElementById('start-button');
         const startOverlay = document.getElementById('start-overlay');
         const backgroundAudio = document.getElementById('background-audio');
+        const voiceoverAudio = document.getElementById('voiceover-audio');
         const muteButton = document.getElementById('mute-button');
 
         // Durations in milliseconds
@@ -204,15 +207,33 @@
             }
         }
 
-        // Function to Start Audio
-        function startAudio() {
+        // Function to Start Background Audio
+        function startBackgroundAudio() {
             backgroundAudio.currentTime = 0;
-            backgroundAudio.volume = 0.5; // Adjust volume as needed
-            backgroundAudio.play().catch(error => console.error('Audio playback failed:', error));
+            backgroundAudio.volume = 0.5; // Set initial volume
+            backgroundAudio.play().catch(error => console.error('Background audio playback failed:', error));
         }
 
-        // Function to Fade Out Audio Gradually
-        function fadeOutAudio() {
+        // Function to Play Voiceover Audio and Adjust Background Volume
+        function playVoiceover() {
+            voiceoverAudio.currentTime = 0;
+            voiceoverAudio.volume = 1.0; // Full volume for voiceover
+            voiceoverAudio.play().catch(error => console.error('Voiceover playback failed:', error));
+
+            // Lower background audio volume
+            backgroundAudio.volume = 0.2;
+
+            // When voiceover ends, restore background audio volume
+            voiceoverAudio.addEventListener('ended', restoreBackgroundVolume, { once: true });
+        }
+
+        // Function to Restore Background Audio Volume
+        function restoreBackgroundVolume() {
+            backgroundAudio.volume = 0.5; // Restore to initial volume
+        }
+
+        // Function to Fade Out Background Audio Gradually
+        function fadeOutBackgroundAudio() {
             const fadeOutInterval = 100; // Interval in ms
             const fadeOutSteps = FADE_OUT_SOUND_DURATION / fadeOutInterval;
             const volumeStep = backgroundAudio.volume / fadeOutSteps;
@@ -231,7 +252,7 @@
         // Sequence Functions
         function showFirstImage() {
             fadeIn(firstImageContainer);
-            startAudio(); // Start audio when first image shows
+            startBackgroundAudio(); // Start background audio with first image
             currentTimer = setTimeout(() => {
                 fadeOutElement(firstImageContainer);
                 showMessage();
@@ -240,6 +261,7 @@
 
         function showMessage() {
             fadeIn(message);
+            playVoiceover(); // Play voiceover when message appears
             currentTimer = setTimeout(() => {
                 fadeOutElement(message);
                 showSecondImage();
@@ -251,7 +273,7 @@
             currentTimer = setTimeout(() => {
                 fadeOutElement(secondImageContainer);
                 showReplayButton();
-                fadeOutAudio(); // Fade out audio at the end
+                fadeOutBackgroundAudio(); // Fade out background audio at the end
             }, DISPLAY_DURATION);
         }
 
@@ -275,6 +297,8 @@
 
         replayButton.addEventListener('click', () => {
             fadeOutElement(replayButton);
+            // Reset audio volumes
+            backgroundAudio.volume = 0.5;
             playSequence();
         });
 
@@ -294,16 +318,18 @@
             clearCurrentTimer();
             fadeOutElement(secondImageContainer);
             showReplayButton();
-            fadeOutAudio(); // Fade out audio if user skips
+            fadeOutBackgroundAudio(); // Fade out audio if user skips
         });
 
         // Mute/Unmute Functionality
         muteButton.addEventListener('click', () => {
             if (backgroundAudio.muted) {
                 backgroundAudio.muted = false;
+                voiceoverAudio.muted = false;
                 muteButton.textContent = '🔊';
             } else {
                 backgroundAudio.muted = true;
+                voiceoverAudio.muted = true;
                 muteButton.textContent = '🔇';
             }
         });
