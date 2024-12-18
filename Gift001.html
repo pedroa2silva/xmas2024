@@ -97,6 +97,28 @@
             border-radius: 12px;
             object-fit: cover;
         }
+
+        /* Mute/Unmute Button Styles */
+        .mute-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 15;
+            transition: background 0.3s;
+        }
+        .mute-button:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-b from-gray-800 to-black flex items-center justify-center min-h-screen relative">
@@ -127,6 +149,11 @@
         Replay Message
     </button>
 
+    <!-- Mute/Unmute Button -->
+    <button id="mute-button" class="mute-button" aria-label="Mute/Unmute Sound">
+        🔊
+    </button>
+
     <!-- Audio Element -->
     <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto"></audio>
 
@@ -139,9 +166,11 @@
         const startButton = document.getElementById('start-button');
         const startOverlay = document.getElementById('start-overlay');
         const backgroundAudio = document.getElementById('background-audio');
+        const muteButton = document.getElementById('mute-button');
 
         // Durations in milliseconds
         const DISPLAY_DURATION = 10000; // 10 seconds
+        const FADE_OUT_SOUND_DURATION = 5000; // 5 seconds
 
         // Timers
         let currentTimer;
@@ -179,6 +208,23 @@
             backgroundAudio.play().catch(error => console.error('Audio playback failed:', error));
         }
 
+        // Function to Fade Out Audio Gradually
+        function fadeOutAudio() {
+            const fadeOutInterval = 100; // Interval in ms
+            const fadeOutSteps = FADE_OUT_SOUND_DURATION / fadeOutInterval;
+            const volumeStep = backgroundAudio.volume / fadeOutSteps;
+
+            const fadeInterval = setInterval(() => {
+                if (backgroundAudio.volume - volumeStep > 0) {
+                    backgroundAudio.volume -= volumeStep;
+                } else {
+                    backgroundAudio.volume = 0;
+                    backgroundAudio.pause();
+                    clearInterval(fadeInterval);
+                }
+            }, fadeOutInterval);
+        }
+
         // Sequence Functions
         function showFirstImage() {
             fadeIn(firstImageContainer);
@@ -202,6 +248,7 @@
             currentTimer = setTimeout(() => {
                 fadeOutElement(secondImageContainer);
                 showReplayButton();
+                fadeOutAudio(); // Fade out audio at the end
             }, DISPLAY_DURATION);
         }
 
@@ -244,6 +291,18 @@
             clearCurrentTimer();
             fadeOutElement(secondImageContainer);
             showReplayButton();
+            fadeOutAudio(); // Fade out audio if user skips
+        });
+
+        // Mute/Unmute Functionality
+        muteButton.addEventListener('click', () => {
+            if (backgroundAudio.muted) {
+                backgroundAudio.muted = false;
+                muteButton.textContent = '🔊';
+            } else {
+                backgroundAudio.muted = true;
+                muteButton.textContent = '🔇';
+            }
         });
 
         // Ensure all elements are hidden initially
