@@ -131,16 +131,12 @@
 
     <!-- First Image Container -->
     <div id="first-image-container" class="image-container">
-        <img id="first-image" class="responsive-image" src="download 04.png" alt="First Intro Image">
+        <img id="first-image" class="responsive-image" src="Ydownload 04.png" alt="First Intro Image">
     </div>
 
     <!-- Glowing Message -->
     <div id="message" class="glow-text text-3xl sm:text-5xl md:text-6xl text-center px-4">
-        <div>Through the streets of time and fog,</div>
-        <div>Where magic walks and dreams unclog,</div>
-        <div>The stone holds secrets, the wand holds power,</div>
-        <div>your memory in this golden hour.</div>
-        </div>
+        Welcome to the Glowing Page!
     </div>
 
     <!-- Second Image Container -->
@@ -158,9 +154,9 @@
         🔊
     </button>
 
-    <!-- Audio Elements -->
-    <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto"></audio>
-    <audio id="voiceover-audio" src="Gift001-Riddle.mp3" preload="auto"></audio>
+    <!-- Audio Elements with playsinline -->
+    <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto" playsinline></audio>
+    <audio id="voiceover-audio" src="Gift001-Riddle.mp3" preload="auto" playsinline></audio>
 
     <script>
         // Get DOM Elements
@@ -180,6 +176,20 @@
 
         // Timers
         let currentTimer;
+
+        // Web Audio API Setup for iOS Compatibility
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
+
+        // Connect background audio to AudioContext
+        const bgSource = audioContext.createMediaElementSource(backgroundAudio);
+        const bgGainNode = audioContext.createGain();
+        bgSource.connect(bgGainNode).connect(audioContext.destination);
+
+        // Connect voiceover audio to AudioContext
+        const voSource = audioContext.createMediaElementSource(voiceoverAudio);
+        const voGainNode = audioContext.createGain();
+        voSource.connect(voGainNode).connect(audioContext.destination);
 
         // Function to Clear Existing Timer
         function clearCurrentTimer() {
@@ -210,18 +220,18 @@
         // Function to Start Background Audio
         function startBackgroundAudio() {
             backgroundAudio.currentTime = 0;
-            backgroundAudio.volume = 0.5; // Set initial volume
+            bgGainNode.gain.value = 0.5; // Initial volume
             backgroundAudio.play().catch(error => console.error('Background audio playback failed:', error));
         }
 
         // Function to Play Voiceover Audio and Adjust Background Volume
         function playVoiceover() {
             voiceoverAudio.currentTime = 0;
-            voiceoverAudio.volume = 1.0; // Full volume for voiceover
+            voGainNode.gain.value = 1.0; // Full volume for voiceover
             voiceoverAudio.play().catch(error => console.error('Voiceover playback failed:', error));
 
             // Lower background audio volume
-            backgroundAudio.volume = 0.2;
+            bgGainNode.gain.value = 0.2;
 
             // When voiceover ends, restore background audio volume
             voiceoverAudio.addEventListener('ended', restoreBackgroundVolume, { once: true });
@@ -229,20 +239,20 @@
 
         // Function to Restore Background Audio Volume
         function restoreBackgroundVolume() {
-            backgroundAudio.volume = 0.5; // Restore to initial volume
+            bgGainNode.gain.value = 0.5; // Restore to initial volume
         }
 
         // Function to Fade Out Background Audio Gradually
         function fadeOutBackgroundAudio() {
             const fadeOutInterval = 100; // Interval in ms
             const fadeOutSteps = FADE_OUT_SOUND_DURATION / fadeOutInterval;
-            const volumeStep = backgroundAudio.volume / fadeOutSteps;
+            const volumeStep = bgGainNode.gain.value / fadeOutSteps;
 
             const fadeInterval = setInterval(() => {
-                if (backgroundAudio.volume - volumeStep > 0) {
-                    backgroundAudio.volume -= volumeStep;
+                if (bgGainNode.gain.value - volumeStep > 0) {
+                    bgGainNode.gain.value -= volumeStep;
                 } else {
-                    backgroundAudio.volume = 0;
+                    bgGainNode.gain.value = 0;
                     backgroundAudio.pause();
                     clearInterval(fadeInterval);
                 }
@@ -288,6 +298,11 @@
 
         // Event Listeners
         startButton.addEventListener('click', () => {
+            // Unlock AudioContext on iOS
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
             fadeOutElement(startOverlay);
             startOverlay.addEventListener('transitionend', () => {
                 startOverlay.style.display = 'none';
@@ -298,7 +313,7 @@
         replayButton.addEventListener('click', () => {
             fadeOutElement(replayButton);
             // Reset audio volumes
-            backgroundAudio.volume = 0.5;
+            bgGainNode.gain.value = 0.5;
             playSequence();
         });
 
@@ -323,15 +338,10 @@
 
         // Mute/Unmute Functionality
         muteButton.addEventListener('click', () => {
-            if (backgroundAudio.muted) {
-                backgroundAudio.muted = false;
-                voiceoverAudio.muted = false;
-                muteButton.textContent = '🔊';
-            } else {
-                backgroundAudio.muted = true;
-                voiceoverAudio.muted = true;
-                muteButton.textContent = '🔇';
-            }
+            const isMuted = backgroundAudio.muted;
+            backgroundAudio.muted = !isMuted;
+            voiceoverAudio.muted = !isMuted;
+            muteButton.textContent = isMuted ? '🔊' : '🔇';
         });
 
         // Ensure all elements are hidden initially
