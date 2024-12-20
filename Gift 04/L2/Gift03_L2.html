@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequential Images and Message with Soundtracks</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        /* Glowing Text Styles */
+        .glow-text {
+            font-family: 'Pacifico', cursive;
+            color: #ffffff;
+            text-shadow:
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+            cursor: pointer;
+        }
+        .visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Fade Button Styles */
+        .fade-button {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+            pointer-events: none;
+        }
+        .button-visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* Ensure the body takes full height */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        /* Overlay for Initial Start Button */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+            opacity: 1;
+            visibility: visible;
+        }
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Image Container Styles */
+        .image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s ease-in-out, visibility 2s ease-in-out;
+            cursor: pointer;
+        }
+        .image-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive Image Styles */
+        .responsive-image {
+            width: 90%;
+            max-width: 600px;
+            height: auto;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        /* Mute/Unmute Button Styles */
+        .mute-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 15;
+            transition: background 0.3s;
+        }
+        .mute-button:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-gray-800 to-black flex items-center justify-center min-h-screen relative">
+    <!-- Initial Overlay with Start Button -->
+    <div id="start-overlay" class="overlay">
+        <button id="start-button" class="px-6 py-3 bg-green-600 text-white rounded-full shadow-lg hover:bg-green-700 focus:outline-none transition">
+            Start Experience
+        </button>
+    </div>
+
+    <!-- First Image Container -->
+    <div id="first-image-container" class="image-container">
+        <img id="first-image" class="responsive-image" src="download 04.png" alt="First Intro Image">
+    </div>
+
+    <!-- Glowing Message -->
+    <div id="message" class="glow-text text-3xl sm:text-5xl md:text-6xl text-center px-4">
+        Welcome to the Glowing Page!
+    </div>
+
+    <!-- Second Image Container -->
+    <div id="second-image-container" class="image-container">
+        <img id="second-image" class="responsive-image" src="download 04.png" alt="Second Intro Image">
+    </div>
+
+    <!-- Replay Button -->
+    <button id="replay-button" class="fade-button mt-8 px-6 py-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 focus:outline-none transition">
+        Replay Message
+    </button>
+
+    <!-- Mute/Unmute Button -->
+    <button id="mute-button" class="mute-button" aria-label="Mute/Unmute Sound">
+        🔊
+    </button>
+
+    <!-- Audio Elements with playsinline -->
+    <audio id="background-audio" src="Wild Heart Rhythm.mp3" preload="auto" playsinline></audio>
+    <audio id="voiceover-audio" src="Gift001-Riddle.mp3" preload="auto" playsinline></audio>
+
+    <script>
+        // Get DOM Elements
+        const message = document.getElementById('message');
+        const replayButton = document.getElementById('replay-button');
+        const firstImageContainer = document.getElementById('first-image-container');
+        const secondImageContainer = document.getElementById('second-image-container');
+        const startButton = document.getElementById('start-button');
+        const startOverlay = document.getElementById('start-overlay');
+        const backgroundAudio = document.getElementById('background-audio');
+        const voiceoverAudio = document.getElementById('voiceover-audio');
+        const muteButton = document.getElementById('mute-button');
+
+        // Durations in milliseconds
+        const DISPLAY_DURATION = 10000; // 10 seconds
+        const FADE_OUT_SOUND_DURATION = 5000; // 5 seconds
+
+        // Timers
+        let currentTimer;
+
+        // Web Audio API Setup for iOS Compatibility
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioContext = new AudioContext();
+
+        // Connect background audio to AudioContext
+        const bgSource = audioContext.createMediaElementSource(backgroundAudio);
+        const bgGainNode = audioContext.createGain();
+        bgSource.connect(bgGainNode).connect(audioContext.destination);
+
+        // Connect voiceover audio to AudioContext
+        const voSource = audioContext.createMediaElementSource(voiceoverAudio);
+        const voGainNode = audioContext.createGain();
+        voSource.connect(voGainNode).connect(audioContext.destination);
+
+        // Function to Clear Existing Timer
+        function clearCurrentTimer() {
+            if (currentTimer) {
+                clearTimeout(currentTimer);
+                currentTimer = null;
+            }
+        }
+
+        // Function to Fade In an Element
+        function fadeIn(element) {
+            if (element.classList.contains('image-container')) {
+                element.classList.add('active');
+            } else {
+                element.classList.add('visible');
+            }
+        }
+
+        // Function to Fade Out an Element
+        function fadeOutElement(element) {
+            if (element.classList.contains('image-container')) {
+                element.classList.remove('active');
+            } else {
+                element.classList.remove('visible');
+            }
+        }
+
+        // Function to Start Background Audio
+        function startBackgroundAudio() {
+            backgroundAudio.currentTime = 0;
+            bgGainNode.gain.value = 0.5; // Initial volume
+            backgroundAudio.play().catch(error => console.error('Background audio playback failed:', error));
+        }
+
+        // Function to Play Voiceover Audio and Adjust Background Volume
+        function playVoiceover() {
+            voiceoverAudio.currentTime = 0;
+            voGainNode.gain.value = 1.0; // Full volume for voiceover
+            voiceoverAudio.play().catch(error => console.error('Voiceover playback failed:', error));
+
+            // Lower background audio volume
+            bgGainNode.gain.value = 0.2;
+
+            // When voiceover ends, restore background audio volume
+            voiceoverAudio.addEventListener('ended', restoreBackgroundVolume, { once: true });
+        }
+
+        // Function to Restore Background Audio Volume
+        function restoreBackgroundVolume() {
+            bgGainNode.gain.value = 0.5; // Restore to initial volume
+        }
+
+        // Function to Fade Out Background Audio Gradually
+        function fadeOutBackgroundAudio() {
+            const fadeOutInterval = 100; // Interval in ms
+            const fadeOutSteps = FADE_OUT_SOUND_DURATION / fadeOutInterval;
+            const volumeStep = bgGainNode.gain.value / fadeOutSteps;
+
+            const fadeInterval = setInterval(() => {
+                if (bgGainNode.gain.value - volumeStep > 0) {
+                    bgGainNode.gain.value -= volumeStep;
+                } else {
+                    bgGainNode.gain.value = 0;
+                    backgroundAudio.pause();
+                    clearInterval(fadeInterval);
+                }
+            }, fadeOutInterval);
+        }
+
+        // Sequence Functions
+        function showFirstImage() {
+            fadeIn(firstImageContainer);
+            startBackgroundAudio(); // Start background audio with first image
+            currentTimer = setTimeout(() => {
+                fadeOutElement(firstImageContainer);
+                showMessage();
+            }, DISPLAY_DURATION);
+        }
+
+        function showMessage() {
+            fadeIn(message);
+            playVoiceover(); // Play voiceover when message appears
+            currentTimer = setTimeout(() => {
+                fadeOutElement(message);
+                showSecondImage();
+            }, DISPLAY_DURATION);
+        }
+
+        function showSecondImage() {
+            fadeIn(secondImageContainer);
+            currentTimer = setTimeout(() => {
+                fadeOutElement(secondImageContainer);
+                showReplayButton();
+                fadeOutBackgroundAudio(); // Fade out background audio at the end
+            }, DISPLAY_DURATION);
+        }
+
+        function showReplayButton() {
+            replayButton.classList.add('button-visible');
+        }
+
+        // Function to Play the Entire Sequence
+        function playSequence() {
+            showFirstImage();
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', () => {
+            // Unlock AudioContext on iOS
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            fadeOutElement(startOverlay);
+            startOverlay.addEventListener('transitionend', () => {
+                startOverlay.style.display = 'none';
+                playSequence();
+            }, { once: true });
+        });
+
+        replayButton.addEventListener('click', () => {
+            fadeOutElement(replayButton);
+            // Reset audio volumes
+            bgGainNode.gain.value = 0.5;
+            playSequence();
+        });
+
+        firstImageContainer.addEventListener('click', () => {
+            clearCurrentTimer();
+            fadeOutElement(firstImageContainer);
+            showMessage();
+        });
+
+        message.addEventListener('click', () => {
+            clearCurrentTimer();
+            fadeOutElement(message);
+            showSecondImage();
+        });
+
+        secondImageContainer.addEventListener('click', () => {
+            clearCurrentTimer();
+            fadeOutElement(secondImageContainer);
+            showReplayButton();
+            fadeOutBackgroundAudio(); // Fade out audio if user skips
+        });
+
+        // Mute/Unmute Functionality
+        muteButton.addEventListener('click', () => {
+            const isMuted = backgroundAudio.muted;
+            backgroundAudio.muted = !isMuted;
+            voiceoverAudio.muted = !isMuted;
+            muteButton.textContent = isMuted ? '🔊' : '🔇';
+        });
+
+        // Ensure all elements are hidden initially
+        window.addEventListener('load', () => {
+            fadeOutElement(firstImageContainer);
+            fadeOutElement(message);
+            fadeOutElement(secondImageContainer);
+            fadeOutElement(replayButton);
+        });
+    </script>
+</body>
+</html>
